@@ -4,6 +4,8 @@ const { STRING } = Sequelize;
 const config = {
   logging: false,
 };
+const bcrypt = require('bcrypt');
+const saltRounds = 10;
 
 if (process.env.LOGGING) {
   delete config.logging;
@@ -18,9 +20,18 @@ const User = conn.define('user', {
   password: STRING,
 });
 
+const Note = conn.define('note', {
+  text: STRING
+});
+
+Note.belongsTo(User);
+User.hasMany(Note);
+
 User.byToken = async (token) => {
   try {
-    const user = await User.findByPk(token);
+    const SECRET_KEY = process.env.JWT;
+    const verifiedToken = jwt.verify(token, SECRET_KEY);
+    const user = await User.findByPk(verifiedToken.userId);
     if (user) {
       return user;
     }
@@ -38,11 +49,11 @@ User.authenticate = async ({ username, password }) => {
   const SECRET_KEY = process.env.JWT;
   const user = await User.findOne({
     where: {
-      username,
-      password,
+      username
     },
   });
-  if (user) {
+  const pwValid = bcrypt.compareSync(password, user.password);
+  if (user && pwValid === true) {
     const token = jwt.sign({ userId: user.id }, SECRET_KEY);
     return token;
   }
@@ -51,6 +62,12 @@ User.authenticate = async ({ username, password }) => {
   throw error;
 };
 
+User.beforeCreate(async (user, options) => {
+const salt = bcrypt.genSaltSync(saltRounds);
+user.password = bcrypt.hashSync(user.password, salt);
+
+})
+
 const syncAndSeed = async () => {
   await conn.sync({ force: true });
   const credentials = [
@@ -58,14 +75,30 @@ const syncAndSeed = async () => {
     { username: 'moe', password: 'moe_pw' },
     { username: 'larry', password: 'larry_pw' },
   ];
+  const notes = [
+    { text: 'blahblah' },
+    { text: 'testing 123' },
+    { text: 'so much text!!!' }
+  ];
   const [lucy, moe, larry] = await Promise.all(
     credentials.map((credential) => User.create(credential))
   );
+
+  const [note1, note2, note3] = await Promise.all(
+    notes.map((note) => Note.create(note))
+  );
+await lucy.setNotes([note1, note2]);
+await moe.setNotes([note3])
+
+
   return {
     users: {
       lucy,
       moe,
       larry,
+      note1,
+      note2, 
+      note3
     },
   };
 };
@@ -74,5 +107,6 @@ module.exports = {
   syncAndSeed,
   models: {
     User,
+    Note
   },
 };
