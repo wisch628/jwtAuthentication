@@ -5,19 +5,13 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start-dev": "npm run build-watch & npm run start-server",
+    "start:dev": "JWT=somekeyhere nodemon server"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/allieh45/jwtAuthentication.git"
-  },
+  
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/allieh45/jwtAuthentication/issues"
-  },
-  "homepage": "https://github.com/allieh45/jwtAuthentication#readme",
+  
   "dependencies": {
     "express": "^4.17.1",
     "nodemon": "^2.0.7",
